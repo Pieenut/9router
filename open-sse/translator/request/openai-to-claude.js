@@ -164,9 +164,8 @@ Respond ONLY with the JSON object, no other text.`);
       });
     }
 
-    if (result.tools.length > 0) {
-      result.tools[result.tools.length - 1].cache_control = { type: "ephemeral", ttl: "1h" };
-    }
+    // Note: cache_control is added later in prepareClaudeRequest only for Anthropic providers
+    // Adding it here would cause MiniMax and other non-Anthropic providers to reject with error 2013
   }
 
   // Tool choice
