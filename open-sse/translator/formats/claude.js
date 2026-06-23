@@ -264,13 +264,19 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
         .filter(tool => !tool.type || tool.type === "function")
         .map(tool => {
           if (tool.function) {
+            // MiniMax expects `parameters` not `input_schema`
             return {
               name: tool.function.name,
               description: tool.function.description,
-              input_schema: tool.function.parameters,
+              parameters: tool.function.parameters,
             };
           }
           const { type, ...rest } = tool;
+          // Convert input_schema to parameters for MiniMax compatibility
+          if (rest.input_schema && !rest.parameters) {
+            rest.parameters = rest.input_schema;
+            delete rest.input_schema;
+          }
           return rest;
         });
     }
