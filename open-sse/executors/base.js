@@ -140,6 +140,11 @@ export class BaseExecutor {
         const bodyStr = JSON.stringify(transformedBody);
         const fetchT0 = Date.now();
         dbg("FETCH", `${this.provider.toUpperCase()} → ${url} | body=${bodyStr.length}B | connectTimeout=${timeoutMs}ms`);
+        
+        // DEBUG: Log tools for MiniMax to debug error 2013
+        if (this.provider === "minimax" && transformedBody.tools) {
+          console.log("[MiniMax-DEBUG] Tools being sent:", JSON.stringify(transformedBody.tools, null, 2));
+        }
         const response = await proxyAwareFetch(url, {
           method: "POST",
           headers,
