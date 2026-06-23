@@ -263,8 +263,20 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
       body.tools = body.tools
         .filter(tool => !tool.type || tool.type === "function")
         .map(tool => {
+          // For MiniMax, keep OpenAI format with function wrapper
+          if (provider === "minimax" || provider === "minimax-cn") {
+            if (tool.function) return tool;
+            return {
+              type: "function",
+              function: {
+                name: tool.name,
+                description: tool.description || "",
+                parameters: tool.parameters || tool.input_schema || { type: "object", properties: {} }
+              }
+            };
+          }
+          // For other non-Claude providers, use Claude format
           if (tool.function) {
-            // MiniMax expects `parameters` not `input_schema`
             return {
               name: tool.function.name,
               description: tool.function.description,
@@ -272,7 +284,7 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
             };
           }
           const { type, ...rest } = tool;
-          // Convert input_schema to parameters for MiniMax compatibility
+          // Convert input_schema to parameters for compatibility
           if (rest.input_schema && !rest.parameters) {
             rest.parameters = rest.input_schema;
             delete rest.input_schema;
