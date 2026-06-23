@@ -275,13 +275,17 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
         });
     }
 
-    body.tools = body.tools.map((tool, i) => {
-      const { cache_control, ...rest } = tool;
-      if (i === body.tools.length - 1) {
-        return { ...rest, cache_control: { type: "ephemeral", ttl: "1h" } };
-      }
-      return rest;
-    });
+    // Only add cache_control to tools for Anthropic providers that support it
+    // Non-Anthropic providers (MiniMax, etc.) may reject this field with error 2013
+    if (provider === "claude" || provider?.startsWith("anthropic-compatible")) {
+      body.tools = body.tools.map((tool, i) => {
+        const { cache_control, ...rest } = tool;
+        if (i === body.tools.length - 1) {
+          return { ...rest, cache_control: { type: "ephemeral", ttl: "1h" } };
+        }
+        return rest;
+      });
+    }
 
     // Remove tools array and tool_choice if empty after filtering
     if (body.tools.length === 0) {

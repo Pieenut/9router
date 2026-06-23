@@ -22,6 +22,7 @@ function sanitizeToolId(id) {
 }
 
 // Ensure all tool_calls have valid id field and arguments is string (some providers require it)
+// Fixes MiniMax error 2013: "tool result's tool id() not found" when provider returns empty IDs
 export function ensureToolCallIds(body) {
   if (!body.messages || !Array.isArray(body.messages)) return body;
 
@@ -31,6 +32,7 @@ export function ensureToolCallIds(body) {
       for (let j = 0; j < msg.tool_calls.length; j++) {
         const tc = msg.tool_calls[j];
         // Validate or regenerate ID for Anthropic compatibility
+        // Note: !tc.id catches empty strings, null, undefined (MiniMax returns empty IDs)
         if (!tc.id || !TOOL_ID_PATTERN.test(tc.id)) {
           const sanitized = sanitizeToolId(tc.id);
           tc.id = sanitized || generateToolCallId(i, j, tc.function?.name);
@@ -46,7 +48,8 @@ export function ensureToolCallIds(body) {
     }
 
     // Validate tool_call_id in tool messages (role: "tool")
-    if (msg.role === "tool" && msg.tool_call_id && !TOOL_ID_PATTERN.test(msg.tool_call_id)) {
+    // Note: !msg.tool_call_id catches empty strings that MiniMax returns
+    if (msg.role === "tool" && (!msg.tool_call_id || !TOOL_ID_PATTERN.test(msg.tool_call_id))) {
       const sanitized = sanitizeToolId(msg.tool_call_id);
       msg.tool_call_id = sanitized || generateToolCallId(i, 0);
     }
@@ -55,12 +58,12 @@ export function ensureToolCallIds(body) {
     if (Array.isArray(msg.content)) {
       for (let k = 0; k < msg.content.length; k++) {
         const block = msg.content[k];
-        if (block.type === "tool_use" && block.id && !TOOL_ID_PATTERN.test(block.id)) {
+        if (block.type === "tool_use" && (!block.id || !TOOL_ID_PATTERN.test(block.id))) {
           const sanitized = sanitizeToolId(block.id);
           block.id = sanitized || generateToolCallId(i, k, block.name);
         }
         // Validate tool_use_id in tool_result blocks
-        if (block.type === "tool_result" && block.tool_use_id && !TOOL_ID_PATTERN.test(block.tool_use_id)) {
+        if (block.type === "tool_result" && (!block.tool_use_id || !TOOL_ID_PATTERN.test(block.tool_use_id))) {
           const sanitized = sanitizeToolId(block.tool_use_id);
           block.tool_use_id = sanitized || generateToolCallId(i, k);
         }

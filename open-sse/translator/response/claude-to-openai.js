@@ -48,9 +48,12 @@ export function claudeToOpenAIResponse(chunk, state) {
         const toolCallIndex = state.toolCallIndex++;
         // Restore original tool name from mapping (Claude OAuth)
         const toolName = state.toolNameMap?.get(block.name) || block.name;
+        // Generate fallback ID if provider (e.g. MiniMax) returns empty tool_use.id
+        // Fixes MiniMax error 2013: "tool result's tool id() not found"
+        const toolId = block.id || `call_${Date.now()}_${toolCallIndex}`;
         const toolCall = {
           index: toolCallIndex,
-          id: block.id,
+          id: toolId,
           type: OPENAI_BLOCK.FUNCTION,
           function: {
             name: toolName,
